@@ -41,11 +41,11 @@ getNeighbors("17031");                        // the 8 neighbors above
 
 | Function | Returns |
 |---|---|
-| `searchCounties(name, { state?, includeNeighbors? })` | Counties whose name or full name matches `name`, sorted by state then name |
+| `searchCounties(name, { state?, includeNeighbors? })` | Counties whose name or full name matches `name`, sorted by state code then name |
 | `getCountiesByState(state, { includeNeighbors? })` | Every county in `state`, sorted by name |
 | `getCounty(fips, { includeNeighbors? })` | One county, or `undefined` |
-| `getNeighbors(fips)` | A county's direct neighbors, sorted by state then name (`[]` if none or unknown) |
-| `getAllCounties()` | All 3,144 counties, sorted by state then name |
+| `getNeighbors(fips)` | A county's direct neighbors, sorted by state code then name (`[]` if none or unknown) |
+| `getAllCounties()` | All 3,144 counties, sorted by state code then name |
 | `getStates()` | `{ code, name }` for the 50 states and DC, sorted by code |
 
 `state` accepts a 2-letter code or a full name, in any case: `"IL"`, `"il"`, `"Illinois"`.
@@ -76,6 +76,7 @@ Matching is exact, but ignores case, accents and extra spaces, and checks both t
 - `"Dona Ana"` matches `"Doña Ana"`, and curly apostrophes match straight ones (`"Prince George’s"` → `"Prince George's"`).
 - `"Baltimore"` returns both Baltimore County and Baltimore City; `"Baltimore County"` returns only the county.
 - Many names repeat across states (31 Washingtons), so pass `state` to narrow the results.
+- Punctuation and spacing inside a name count: use `"St. Louis"`, not `"St Louis"` or `"Saint Louis"`. `"LaSalle"` (IL, LA) and `"La Salle"` (TX) are different counties. DC's county name is `"District of Columbia"`.
 
 ### Errors
 
@@ -87,6 +88,8 @@ Matching is exact, but ignores case, accents and extra spaces, and checks both t
 ### Notes
 
 - Neighbors are direct neighbors only, and can be in other states. Honolulu, Hawaii and Kauai counties (HI) have none.
+- Adjacency follows the US Census Bureau county adjacency file: counties that touch at a single point (the Four Corners) and some separated by water (e.g. Nantucket and Dukes, MA) count as neighbors.
+- Counties are current Census county-equivalents. Connecticut is listed as its 9 planning regions (e.g. "Capitol Planning Region"), not its old counties, and retired names such as Hartford County, Valdez-Cordova or Wade Hampton are not present.
 - US territories (Puerto Rico, Guam, etc.) are not included.
 
 ## Data
