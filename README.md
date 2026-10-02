@@ -96,6 +96,15 @@ Matching is exact, but ignores case, accents and extra spaces, and checks both t
 
 The data comes from [this spreadsheet](https://docs.google.com/spreadsheets/d/1GaOFD2TYva_0aYgIjHVik17O4YLz0buO): Sheet1 lists the counties and Sheet2 lists neighboring county pairs.
 
+### Sources and licenses
+
+- **County names, FIPS codes, coordinates and population:** [SimpleMaps US Counties Database](https://simplemaps.com/data/us-counties), licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+- **County adjacency (neighbors):** [US Census Bureau County Adjacency File](https://www.census.gov/geographies/reference-files/time-series/geo/county-adjacency.html) (public domain).
+
+The package's code is MIT-licensed. The bundled data remains under the licenses above.
+
+### Refreshing the data
+
 To refresh it:
 
 ```bash
@@ -120,4 +129,4 @@ Development requires Node.js 22.18+ (or 24.11+).
 
 ## License
 
-MIT
+Code: MIT. Data: see [Sources and licenses](#sources-and-licenses).
