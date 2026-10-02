@@ -43,6 +43,7 @@
     "typecheck": "tsc",
     "sync-data": "tsx scripts/sync-data.ts",
     "smoke": "node scripts/smoke.cjs && node scripts/smoke.mjs",
+    "prepack": "npm run build",
     "prepublishOnly": "npm run typecheck && npm test && npm run build && npm run smoke"
   },
   "devDependencies": {
