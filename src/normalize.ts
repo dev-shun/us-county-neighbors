@@ -1,8 +1,12 @@
-/** Lowercase, trim, collapse whitespace and strip accents, so "  DOÑA   ana " → "dona ana". */
+/**
+ * Lowercase, trim, collapse whitespace, strip accents and fold typographic apostrophes,
+ * so "  DOÑA   ana " → "dona ana" and "Prince George’s" → "prince george's".
+ */
 export function normalizeName(input: string): string {
   return input
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[\u2018\u2019\u02bc]/g, "'")
     .trim()
     .replace(/\s+/g, " ")
     .toLowerCase();

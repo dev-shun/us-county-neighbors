@@ -4,6 +4,7 @@ import { normalizeFips, normalizeName } from "../src/normalize";
 describe("normalizeName", () => {
   it("lowercases, trims and collapses whitespace", () => {
     expect(normalizeName("  Cook   COUNTY ")).toBe("cook county");
+    expect(normalizeName(" Cook\tCounty ")).toBe("cook county");
   });
 
   it("strips accents so ASCII spellings match", () => {
@@ -13,6 +14,7 @@ describe("normalizeName", () => {
 
   it("keeps punctuation", () => {
     expect(normalizeName("St. Louis")).toBe("st. louis");
+    expect(normalizeName("Prince George\u2019s")).toBe("prince george's");
   });
 });
 
