@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { getAllCounties, getCounty, getNeighbors, getStates } from "../src/search";
+import {
+  getAllCounties,
+  getCountiesByState,
+  getCounty,
+  getNeighbors,
+  getStates,
+  searchCounties,
+} from "../src/search";
 import type { County } from "../src/types";
 
 const label = (c: County) => `${c.name}, ${c.stateCode}`;
@@ -105,5 +112,121 @@ describe("getStates", () => {
     expect(states[0]).toEqual({ code: "AK", name: "Alaska" });
     expect(states).toContainEqual({ code: "DC", name: "District of Columbia" });
     expect(states.map((s) => s.code)).toEqual(states.map((s) => s.code).sort());
+  });
+});
+
+const fipsOf = (counties: County[]) => counties.map((c) => c.fips);
+
+describe("searchCounties", () => {
+  it("returns every county with that name, sorted by state", () => {
+    const result = searchCounties("Washington");
+    expect(result).toHaveLength(31);
+    expect(result.every((c) => c.name === "Washington")).toBe(true);
+    const codes = result.map((c) => c.stateCode);
+    expect(codes).toEqual([...codes].sort());
+  });
+
+  it("matches the full name, so 'Washington County' excludes Washington Parish", () => {
+    const result = searchCounties("Washington County");
+    expect(result).toHaveLength(30);
+    expect(result.some((c) => c.stateCode === "LA")).toBe(false);
+  });
+
+  it("is case-, whitespace- and accent-insensitive", () => {
+    expect(fipsOf(searchCounties("cook county", { state: "IL" }))).toEqual(["17031"]);
+    expect(fipsOf(searchCounties("  COOK  ", { state: "il" }))).toEqual(["17031"]);
+    expect(fipsOf(searchCounties("Dona Ana"))).toEqual(["35013"]);
+    expect(fipsOf(searchCounties("doña ana county"))).toEqual(["35013"]);
+  });
+
+  it("finds same-named counties in different states", () => {
+    expect(searchCounties("Cook").map((c) => c.stateCode)).toEqual(["GA", "IL", "MN"]);
+  });
+
+  it("separates a county from an independent city with the same name", () => {
+    expect(fipsOf(searchCounties("Baltimore"))).toEqual(["24005", "24510"]);
+    expect(fipsOf(searchCounties("Baltimore County"))).toEqual(["24005"]);
+    expect(fipsOf(searchCounties("Baltimore City"))).toEqual(["24510"]);
+    expect(fipsOf(searchCounties("St. Louis", { state: "MO" }))).toEqual(["29189", "29510"]);
+  });
+
+  it("matches non-'County' full names", () => {
+    expect(fipsOf(searchCounties("Orleans Parish"))).toEqual(["22071"]);
+    expect(fipsOf(searchCounties("District of Columbia"))).toEqual(["11001"]);
+  });
+
+  it("accepts a state code or a full state name", () => {
+    expect(fipsOf(searchCounties("Cook", { state: "Illinois" }))).toEqual(["17031"]);
+    expect(fipsOf(searchCounties("Cook", { state: " minnesota " }))).toEqual(["27031"]);
+  });
+
+  it("attaches neighbors when includeNeighbors is true", () => {
+    const [cook, ...rest] = searchCounties("Cook", { state: "IL", includeNeighbors: true });
+    expect(rest).toEqual([]);
+    expect(cook?.fips).toBe("17031");
+    expect(cook?.neighbors.map(label)).toEqual(COOK_NEIGHBORS);
+    expect(Object.isFrozen(cook)).toBe(true);
+  });
+
+  it("does not attach neighbors by default", () => {
+    expect(searchCounties("Cook", { state: "IL" })[0]).not.toHaveProperty("neighbors");
+  });
+
+  it("returns an empty list when nothing matches", () => {
+    expect(searchCounties("Atlantis")).toEqual([]);
+    expect(searchCounties("Cook", { state: "TX" })).toEqual([]);
+  });
+
+  it("throws a RangeError for an unknown state", () => {
+    expect(() => searchCounties("Cook", { state: "XX" })).toThrow(RangeError);
+    expect(() => searchCounties("Cook", { state: "XX" })).toThrow('Unknown state: "XX"');
+  });
+
+  it("throws a TypeError for an empty or non-string name", () => {
+    expect(() => searchCounties("")).toThrow(TypeError);
+    expect(() => searchCounties("   ")).toThrow(TypeError);
+    expect(() => searchCounties(42 as unknown as string)).toThrow(TypeError);
+  });
+
+  it("returns a fresh array each call", () => {
+    searchCounties("Washington").length = 0;
+    expect(searchCounties("Washington")).toHaveLength(31);
+  });
+});
+
+describe("getCountiesByState", () => {
+  it("returns every county in a state, sorted by name", () => {
+    const result = getCountiesByState("IL");
+    expect(result).toHaveLength(102);
+    expect(result[0]?.name).toBe("Adams");
+    expect(result.at(-1)?.name).toBe("Woodford");
+    expect(result.every((c) => c.stateCode === "IL")).toBe(true);
+  });
+
+  it("accepts codes and names in any case", () => {
+    const expected = fipsOf(getCountiesByState("IL"));
+    expect(fipsOf(getCountiesByState("il"))).toEqual(expected);
+    expect(fipsOf(getCountiesByState("Illinois"))).toEqual(expected);
+    expect(fipsOf(getCountiesByState("  ILLINOIS "))).toEqual(expected);
+  });
+
+  it("handles DC", () => {
+    expect(fipsOf(getCountiesByState("District of Columbia"))).toEqual(["11001"]);
+  });
+
+  it("attaches neighbors when includeNeighbors is true", () => {
+    const result = getCountiesByState("IL", { includeNeighbors: true });
+    expect(result.every((c) => Array.isArray(c.neighbors))).toBe(true);
+    expect(result.find((c) => c.fips === "17031")?.neighbors.map(label)).toEqual(COOK_NEIGHBORS);
+  });
+
+  it("throws a RangeError for an unknown state and a TypeError for an empty one", () => {
+    expect(() => getCountiesByState("XX")).toThrow(RangeError);
+    expect(() => getCountiesByState("")).toThrow(TypeError);
+  });
+
+  it("returns a fresh array each call", () => {
+    getCountiesByState("IL").length = 0;
+    expect(getCountiesByState("IL")).toHaveLength(102);
   });
 });

@@ -1,6 +1,6 @@
 import { getIndexes } from "./data";
-import { normalizeFips } from "./normalize";
-import type { County, CountyWithNeighbors, NeighborOptions, State } from "./types";
+import { normalizeFips, normalizeName } from "./normalize";
+import type { County, CountyWithNeighbors, NeighborOptions, SearchOptions, State } from "./types";
 
 function neighborsOf(fips: string): County[] {
   return [...(getIndexes().neighbors.get(fips) ?? [])];
@@ -8,6 +8,50 @@ function neighborsOf(fips: string): County[] {
 
 function withNeighbors(county: County): CountyWithNeighbors {
   return Object.freeze({ ...county, neighbors: neighborsOf(county.fips) });
+}
+
+function expand(counties: readonly County[], options: NeighborOptions | undefined): County[] | CountyWithNeighbors[] {
+  return options?.includeNeighbors ? counties.map(withNeighbors) : [...counties];
+}
+
+function resolveState(state: unknown): string {
+  if (typeof state !== "string" || state.trim() === "") {
+    throw new TypeError(`state must be a non-empty string, got ${JSON.stringify(state)}`);
+  }
+  const code = getIndexes().stateLookup.get(normalizeName(state));
+  if (!code) {
+    throw new RangeError(
+      `Unknown state: ${JSON.stringify(state)}. Use a 2-letter code like "IL" or a full name like "Illinois".`,
+    );
+  }
+  return code;
+}
+
+/**
+ * Find counties whose name or full name matches exactly (ignoring case, accents and extra spaces).
+ * "Cook", "cook county" and "COOK" all match Cook County. Sorted by state then name.
+ */
+export function searchCounties(name: string, options: SearchOptions & { includeNeighbors: true }): CountyWithNeighbors[];
+export function searchCounties(name: string, options?: SearchOptions & { includeNeighbors?: false }): County[];
+export function searchCounties(name: string, options?: SearchOptions): County[] | CountyWithNeighbors[];
+export function searchCounties(name: string, options?: SearchOptions): County[] | CountyWithNeighbors[] {
+  if (typeof name !== "string" || name.trim() === "") {
+    throw new TypeError(`name must be a non-empty string, got ${JSON.stringify(name)}`);
+  }
+  const stateCode = options?.state === undefined ? undefined : resolveState(options.state);
+  const matches = getIndexes().byName.get(normalizeName(name)) ?? [];
+  return expand(stateCode ? matches.filter((c) => c.stateCode === stateCode) : matches, options);
+}
+
+/** Every county in a state ("IL", "il" or "Illinois"), sorted by name. */
+export function getCountiesByState(
+  state: string,
+  options: NeighborOptions & { includeNeighbors: true },
+): CountyWithNeighbors[];
+export function getCountiesByState(state: string, options?: NeighborOptions & { includeNeighbors?: false }): County[];
+export function getCountiesByState(state: string, options?: NeighborOptions): County[] | CountyWithNeighbors[];
+export function getCountiesByState(state: string, options?: NeighborOptions): County[] | CountyWithNeighbors[] {
+  return expand(getIndexes().byState.get(resolveState(state)) ?? [], options);
 }
 
 /** Look up one county by FIPS code ("17031", "1001" or 17031). */
