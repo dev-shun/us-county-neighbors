@@ -10,8 +10,16 @@ function withNeighbors(county: County): CountyWithNeighbors {
   return Object.freeze({ ...county, neighbors: neighborsOf(county.fips) });
 }
 
+/** Rejects non-object options, so `searchCounties("Cook", "IL")` throws instead of ignoring "IL". */
+function wantsNeighbors(options: NeighborOptions | undefined): boolean {
+  if (options != null && typeof options !== "object") {
+    throw new TypeError(`options must be an object, got ${typeof options}`);
+  }
+  return Boolean(options?.includeNeighbors);
+}
+
 function expand(counties: readonly County[], options: NeighborOptions | undefined): County[] | CountyWithNeighbors[] {
-  return options?.includeNeighbors ? counties.map(withNeighbors) : [...counties];
+  return wantsNeighbors(options) ? counties.map(withNeighbors) : [...counties];
 }
 
 function resolveState(state: unknown): string {
@@ -65,10 +73,11 @@ export function getCounty(
 ): County | undefined;
 export function getCounty(fips: string | number, options?: NeighborOptions): County | CountyWithNeighbors | undefined;
 export function getCounty(fips: string | number, options?: NeighborOptions): County | CountyWithNeighbors | undefined {
+  const attach = wantsNeighbors(options);
   const code = normalizeFips(fips);
   const county = code === undefined ? undefined : getIndexes().byFips.get(code);
   if (!county) return undefined;
-  return options?.includeNeighbors ? withNeighbors(county) : county;
+  return attach ? withNeighbors(county) : county;
 }
 
 /** Direct neighbors of a county, sorted by state then name. Empty for unknown FIPS codes. */

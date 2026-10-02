@@ -50,6 +50,7 @@ describe("getCounty", () => {
   it("attaches neighbors when asked", () => {
     const cook = getCounty("17031", { includeNeighbors: true });
     expect(cook?.neighbors.map(label)).toEqual(COOK_NEIGHBORS);
+    expect(() => getCounty("17031", true as never)).toThrow(TypeError);
   });
 
   it("returns frozen objects", () => {
@@ -182,10 +183,11 @@ describe("searchCounties", () => {
     expect(() => searchCounties("Cook", { state: "XX" })).toThrow('Unknown state: "XX"');
   });
 
-  it("throws a TypeError for an empty or non-string name", () => {
+  it("throws a TypeError for an empty or non-string name, or non-object options", () => {
     expect(() => searchCounties("")).toThrow(TypeError);
     expect(() => searchCounties("   ")).toThrow(TypeError);
     expect(() => searchCounties(42 as unknown as string)).toThrow(TypeError);
+    expect(() => searchCounties("Cook", "IL" as never)).toThrow(TypeError);
   });
 
   it("returns a fresh array each call", () => {
@@ -220,9 +222,10 @@ describe("getCountiesByState", () => {
     expect(result.find((c) => c.fips === "17031")?.neighbors.map(label)).toEqual(COOK_NEIGHBORS);
   });
 
-  it("throws a RangeError for an unknown state and a TypeError for an empty one", () => {
+  it("throws a RangeError for an unknown state, a TypeError for an empty one or non-object options", () => {
     expect(() => getCountiesByState("XX")).toThrow(RangeError);
     expect(() => getCountiesByState("")).toThrow(TypeError);
+    expect(() => getCountiesByState("IL", true as never)).toThrow(TypeError);
   });
 
   it("returns a fresh array each call", () => {
