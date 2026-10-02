@@ -7,7 +7,7 @@ export interface Indexes {
   /** Every county, sorted by `compareCounties`. */
   all: readonly County[];
   byFips: ReadonlyMap<string, County>;
-  /** Keyed by normalized name, ASCII name and full name; each list sorted by `compareCounties`. */
+  /** Keyed by the normalized `name`, `nameAscii` and `fullName`; each list sorted by `compareCounties`. */
   byName: ReadonlyMap<string, readonly County[]>;
   /** Keyed by state code; each list sorted by name. */
   byState: ReadonlyMap<string, readonly County[]>;
@@ -75,6 +75,6 @@ function buildIndexes(rawCounties: County[], rawNeighbors: Record<string, string
 
 /** Builds the indexes on first use and caches them for the life of the process. */
 export function getIndexes(): Indexes {
-  cache ??= buildIndexes(countiesJson as County[], neighborsJson as Record<string, string[]>);
+  cache ??= buildIndexes(countiesJson satisfies County[], neighborsJson satisfies Record<string, string[]>);
   return cache;
 }

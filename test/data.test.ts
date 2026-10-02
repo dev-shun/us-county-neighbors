@@ -4,8 +4,8 @@ import neighborsJson from "../data/neighbors.json";
 import { validateDataset } from "../scripts/transform";
 import type { County } from "../src/types";
 
-const counties = countiesJson as County[];
-const neighbors = neighborsJson as Record<string, string[]>;
+const counties: County[] = countiesJson;
+const neighbors: Record<string, string[]> = neighborsJson;
 
 describe("shipped data", () => {
   it("has 3,144 counties with unique 5-digit FIPS codes", () => {
