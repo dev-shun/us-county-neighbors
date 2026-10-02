@@ -14,9 +14,15 @@ const DATA_DIR = new URL("../data/", import.meta.url);
 
 async function main(): Promise<void> {
   console.log(`Downloading ${SHEET_URL}`);
-  const response = await fetch(SHEET_URL);
+  const response = await fetch(SHEET_URL, { signal: AbortSignal.timeout(60_000) });
   if (!response.ok) throw new Error(`Download failed: HTTP ${response.status} ${response.statusText}`);
-  const workbook = XLSX.read(new Uint8Array(await response.arrayBuffer()), { type: "array" });
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  if (bytes[0] !== 0x50 || bytes[1] !== 0x4b) {
+    throw new Error(
+      `Expected an xlsx file but got ${response.headers.get("content-type") ?? "unknown content"}. Is the sheet still shared publicly?`,
+    );
+  }
+  const workbook = XLSX.read(bytes, { type: "array" });
 
   const [countySheetName, neighborSheetName] = workbook.SheetNames;
   const countySheet = countySheetName === undefined ? undefined : workbook.Sheets[countySheetName];
