@@ -1,0 +1,66 @@
+{
+  "name": "us-county-neighbors",
+  "version": "0.1.0",
+  "description": "Search US counties by name or state and get their neighboring counties. Zero dependencies, works offline.",
+  "license": "MIT",
+  "author": "Angelo David",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dev-shun/us-county-neighbors.git"
+  },
+  "homepage": "https://github.com/dev-shun/us-county-neighbors#readme",
+  "bugs": {
+    "url": "https://github.com/dev-shun/us-county-neighbors/issues"
+  },
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.cts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "us",
+    "counties",
+    "county",
+    "fips",
+    "neighbors",
+    "adjacent",
+    "states",
+    "geography"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "test": "vitest run",
+    "typecheck": "tsc",
+    "sync-data": "tsx scripts/sync-data.ts",
+    "smoke": "node scripts/smoke.cjs && node scripts/smoke.mjs",
+    "prepack": "npm run build",
+    "prepublishOnly": "npm run typecheck && npm test && npm run build && npm run smoke"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.4",
+    "tsdown": "^0.23.0",
+    "tsx": "^4.23.15",
+    "typescript": "^6.0.3",
+    "vitest": "^5.0.3",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
+  }
+}
