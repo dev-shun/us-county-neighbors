@@ -94,7 +94,7 @@ Matching is exact, but ignores case, accents and extra spaces, and checks both t
 
 ## Data
 
-The data comes from [this spreadsheet](https://docs.google.com/spreadsheets/d/1GaOFD2TYva_0aYgIjHVik17O4YLz0buO): Sheet1 lists the counties and Sheet2 lists neighboring county pairs.
+The data comes from [this spreadsheet](https://docs.google.com/spreadsheets/d/1rk2oJGcCJY2SLgzp-mxu4mdRfz_apCMroFVx52X5u_A): Sheet1 lists the counties and Sheet2 lists neighboring county pairs.
 
 ### Sources and licenses
 

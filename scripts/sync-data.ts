@@ -9,7 +9,7 @@ import {
 } from "./transform";
 
 const SHEET_URL =
-  "https://docs.google.com/spreadsheets/d/1GaOFD2TYva_0aYgIjHVik17O4YLz0buO/export?format=xlsx";
+  "https://docs.google.com/spreadsheets/d/1rk2oJGcCJY2SLgzp-mxu4mdRfz_apCMroFVx52X5u_A/export?format=xlsx";
 const DATA_DIR = new URL("../data/", import.meta.url);
 
 async function main(): Promise<void> {
