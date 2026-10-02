@@ -14,6 +14,10 @@ export interface RawCountyRow {
 }
 
 const GEOID = /^\d{5}$/;
+const STATE_CODE = /^[A-Z]{2}$/;
+
+/** FIPS state prefixes of US territories (AS, GU, MP, PR, UM, VI), which the sheet lists but we exclude. */
+const TERRITORY_PREFIXES = new Set(["60", "66", "69", "72", "74", "78"]);
 
 // Spreadsheet row number for a data row: +1 for 1-based numbering, +1 for the header row.
 function sheetRow(index: number): number {
@@ -32,6 +36,16 @@ function number(row: RawCountyRow, key: keyof RawCountyRow, index: number): numb
   const value = row[key];
   if (typeof value !== "number" || !Number.isFinite(value)) {
     throw new Error(`Sheet1 row ${sheetRow(index)}: "${key}" must be a number, got ${JSON.stringify(value)}`);
+  }
+  return value;
+}
+
+function population(row: RawCountyRow, index: number): number {
+  const value = row.population;
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 0) {
+    throw new Error(
+      `Sheet1 row ${sheetRow(index)}: "population" must be a non-negative integer, got ${JSON.stringify(value)}`,
+    );
   }
   return value;
 }
@@ -67,7 +81,7 @@ export function parseCounties(rows: RawCountyRow[]): County[] {
       stateName: text(row, "state_name", index),
       lat: number(row, "lat", index),
       lng: number(row, "lng", index),
-      population: number(row, "population", index),
+      population: population(row, index),
     };
   });
   return counties.sort(byFips);
@@ -75,7 +89,8 @@ export function parseCounties(rows: RawCountyRow[]): County[] {
 
 /**
  * Sheet2 lines ("Name|GEOID|Neighbor Name|Neighbor GEOID", header excluded) → neighbor FIPS lists.
- * Every county gets an entry. Self-pairs and GEOIDs not in `counties` (territories) are dropped.
+ * Every county gets an entry. Self-pairs are dropped, as are rows that involve a territory GEOID
+ * (territories are not in `counties`). Any other GEOID missing from `counties` is an error.
  */
 export function parseNeighbors(lines: string[], counties: County[]): Record<string, string[]> {
   const lists = new Map<string, Set<string>>(counties.map((c) => [c.fips, new Set<string>()]));
@@ -89,9 +104,15 @@ export function parseNeighbors(lines: string[], counties: County[]): Record<stri
     if (!GEOID.test(from) || !GEOID.test(to)) {
       throw new Error(`Sheet2 row ${sheetRow(index)}: invalid GEOID in ${JSON.stringify(line)}`);
     }
+    const unknown = [from, to].filter((geoid) => !lists.has(geoid));
+    for (const geoid of unknown) {
+      if (!TERRITORY_PREFIXES.has(geoid.slice(0, 2))) {
+        throw new Error(`Sheet2 row ${sheetRow(index)}: unknown GEOID ${geoid}`);
+      }
+    }
+    if (unknown.length > 0) return; // territory row
     if (from === to) return; // the sheet lists every county as its own neighbor
-    const list = lists.get(from);
-    if (list && lists.has(to)) list.add(to);
+    lists.get(from)!.add(to);
   });
   const neighbors: Record<string, string[]> = {};
   for (const [code, list] of lists) neighbors[code] = [...list].sort();
@@ -101,6 +122,19 @@ export function parseNeighbors(lines: string[], counties: County[]): Record<stri
 /** Throws if any neighbor reference is missing, unknown, self-referencing or one-way. */
 export function validateDataset({ counties, neighbors }: Dataset): void {
   const known = new Set(counties.map((c) => c.fips));
+  const stateNames = new Map<string, string>();
+  for (const county of counties) {
+    if (!STATE_CODE.test(county.stateCode)) {
+      throw new Error(`County ${county.fips} has invalid state code ${JSON.stringify(county.stateCode)}`);
+    }
+    const name = stateNames.get(county.stateCode);
+    if (name === undefined) stateNames.set(county.stateCode, county.stateName);
+    else if (name !== county.stateName) {
+      throw new Error(
+        `State code ${county.stateCode} maps to multiple names: ${JSON.stringify(name)} and ${JSON.stringify(county.stateName)}`,
+      );
+    }
+  }
   for (const code of Object.keys(neighbors)) {
     if (!known.has(code)) throw new Error(`Neighbor list for unknown county ${code}`);
   }

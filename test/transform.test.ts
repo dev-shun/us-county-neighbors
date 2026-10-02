@@ -87,7 +87,14 @@ describe("parseCounties", () => {
 
   it("rejects non-numeric coordinates and population", () => {
     expect(() => parseCounties([row({ lat: "41.8" })])).toThrow('Sheet1 row 2: "lat" must be a number');
-    expect(() => parseCounties([row({ population: null })])).toThrow('Sheet1 row 2: "population" must be a number');
+    expect(() => parseCounties([row({ population: null })])).toThrow(
+      'Sheet1 row 2: "population" must be a non-negative integer',
+    );
+  });
+
+  it("rejects negative or fractional population", () => {
+    expect(() => parseCounties([row({ population: -5 })])).toThrow('"population" must be a non-negative integer');
+    expect(() => parseCounties([row({ population: 1.5 })])).toThrow('"population" must be a non-negative integer');
   });
 
   it("rejects malformed FIPS codes", () => {
@@ -113,6 +120,17 @@ describe("parseNeighbors", () => {
       "17031": ["17043"],
       "17043": ["17031"],
     });
+  });
+
+  it("drops territory rows in either direction", () => {
+    const lines = ["Cook County, IL|17031|Mystery Municipio, PR|72001", "Mystery Municipio, PR|72001|Cook County, IL|17031"];
+    expect(parseNeighbors(lines, counties)["17031"]).toEqual([]);
+  });
+
+  it("rejects unknown GEOIDs that are not territories", () => {
+    expect(() => parseNeighbors(["Cook County, IL|17031|Nowhere County, CT|09110"], counties)).toThrow(
+      "Sheet2 row 2: unknown GEOID 09110",
+    );
   });
 
   it("ignores duplicate rows", () => {
@@ -161,6 +179,20 @@ describe("validateDataset", () => {
   it("rejects a county without a neighbor list", () => {
     expect(() => validateDataset({ counties, neighbors: { "17031": [] } })).toThrow(
       "County 17043 has no neighbor list",
+    );
+  });
+
+  it("rejects malformed state codes", () => {
+    const bad = counties.map((c) => ({ ...c, stateCode: "Il" }));
+    expect(() => validateDataset({ counties: bad, neighbors: { "17031": [], "17043": [] } })).toThrow(
+      'County 17031 has invalid state code "Il"',
+    );
+  });
+
+  it("rejects a state code with two different names", () => {
+    const bad = [counties[0]!, { ...counties[1]!, stateName: "Illinoise" }];
+    expect(() => validateDataset({ counties: bad, neighbors: { "17031": [], "17043": [] } })).toThrow(
+      'State code IL maps to multiple names: "Illinois" and "Illinoise"',
     );
   });
 
